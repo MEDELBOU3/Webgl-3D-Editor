@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Webgl-3D-editor</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="container"></div>
+
+
+         <!-- HDRI buttons -->
+    <div class="hdri-selector panel">
+        <select id="hdriSelect">
+            <option value="forest">Forest</option>
+            <option value="desert">Desert</option>
+            <option value="city">City</option>
+            <option value="studio">Studio</option>
+        </select>
+        <div id="hdriPreview"></div>
+        <input type="file" id="customHdri" accept=".hdr,.exr">
+    </div>
+
+    <!-- control buttons files -->
+    <div class="file-controls panel">
+        <button class="tool-button" id="copyObject">Copy</button>
+        <button class="tool-button" id="pasteObject">Past</button>
+        <button class="tool-button" id="deleteObject">Delete</button>
+        <button class="tool-button" id="undo">Undo</button>
+        <button class="tool-button" id="redo">Redo</button>
+        <input type="file" id="glbLoader" accept=".glb,.gltf">
+        <input type="file" id="textureLoader" accept="image/*">
+    </div>
+
+    <!-- Camera control buttons -->
+    <div class="camera-controls panel">
+        <button class="tool-button" id="addCamera">Add Camera</button>
+        <button class="tool-button" id="switchCamera">Change Camera</button>
+        <select id="cameraSelect">
+            <option value="perspective">View</option>
+            <option value="orthographic">Ortogonal</option>
+        </select>
+    </div>
+
+   
+    <div id="toolbar" class="panel">
+        <div class="tool-group">
+            <button class="tool-button" id="addCube">Cube</button>
+            <button class="tool-button" id="addSphere">Sphere</button>
+            <button class="tool-button" id="addCylinder">Cylinder</button>
+            <button class="tool-button" id="addPlane">Plane</button>
+            <button class="tool-button" id="addTorus">Torus</button>
+        </div>
+        
+        <div class="tool-group">
+            <button class="tool-button" id="addPointLight">Point Light</button>
+            <button class="tool-button" id="addSpotLight">Directional Light</button>
+            <button class="tool-button" id="addAmbientLight">Ambient Light</button>
+        </div>
+        
+        <div class="tool-group">
+            <button class="tool-button" id="translate">Translation</button>
+            <button class="tool-button" id="rotate">Rotation</button>
+            <button class="tool-button" id="scale">Scaling</button>
+        </div>
+        
+        <div class="tool-group">
+            <button class="tool-button" id="startRecord">Record</button>
+            <button class="tool-button" id="stopRecord">Pause</button>
+            <button class="tool-button" id="playRecord">Play</button>
+        </div>
+    </div>
+
+    <div id="properties" class="panel">
+        <h3>Object Properties</h3>
+        <div class="property-group">
+            <div class="property-row">
+                <span>Pos X:</span>
+                <input type="number" id="posX" step="0.1">
+            </div>
+            <div class="property-row">
+                <span>Pos Y:</span>
+                <input type="number" id="posY" step="0.1">
+            </div>
+            <div class="property-row">
+                <span>Pos Z:</span>
+                <input type="number" id="posZ" step="0.1">
+            </div>
+        </div>
+        
+        <div class="property-group">
+            <div class="property-row">
+                <span>Rot X:</span>
+                <input type="number" id="rotX" step="0.1">
+            </div>
+            <div class="property-row">
+                <span>Rot Y:</span>
+                <input type="number" id="rotY" step="0.1">
+            </div>
+            <div class="property-row">
+                <span>Rot Z:</span>
+                <input type="number" id="rotZ" step="0.1">
+            </div>
+        </div>
+        
+        <div class="property-group">
+            <div class="property-row">
+                <span>Scale X:</span>
+                <input type="number" id="scaleX" step="0.1" value="1">
+            </div>
+            <div class="property-row">
+                <span>Scale Y:</span>
+                <input type="number" id="scaleY" step="0.1" value="1">
+            </div>
+            <div class="property-row">
+                <span>Scale Z:</span>
+                <input type="number" id="scaleZ" step="0.1" value="1">
+            </div>
+        </div>
+    </div>
+
+    <div id="material-editor" class="panel">
+        <h3>Material Editor</h3>
+        <div class="property-group">
+            <div class="property-row">
+                <span>Color:</span>
+                <input type="color" id="materialColor">
+            </div>
+            <div class="property-row">
+                <span>Shine:</span>
+                <input type="number" id="materialMetalness" min="0" max="1" step="0.1">
+            </div>
+            <div class="property-row">
+                <span>Roughness:</span>
+                <input type="number" id="materialRoughness" min="0" max="1" step="0.1">
+            </div>
+            <div class="property-row">
+                <span>Transparency:</span>
+                <input type="number" id="materialOpacity" min="0" max="1" step="0.1">
+            </div>
+        </div>
+    </div>
+
+    <div id="scene-hierarchy" class="panel">
+        <h3>Scene Sequence</h3>
+        <div id="hierarchy-content"></div>
+    </div>
+
+    <div id="timeline" class="panel">
+        <!--Timeline -->
+    </div>
+
+    <div id="viewport-info"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
+
+
+    <script src="main.js"></script>
+</body>
+</html>
