@@ -3,9 +3,11 @@
 <head>
     <meta charset="utf-8">
     <title>Webgl-3D-editor</title>
+
     <style>
         body { margin: 0; font-family: Arial, sans-serif; }
         #container { width: 100%; height: 100vh; }
+        #gui-container { position: absolute; top: 0; right: 0; }
         .panel {
             position: fixed;
             background: rgba(30,30,30,0.9);
@@ -14,6 +16,11 @@
             border-radius: 5px;
             box-shadow: 0 0 10px rgba(0,0,0,0.5);
         }
+
+        .active {
+            display: block !important;
+        }
+
         #toolbar {
             top: 10px;
             left: 10px;
@@ -27,6 +34,7 @@
             width: 250px;
         }
         #timeline {
+            display: none;
             bottom: 10px;
             left: 50%;
             transform: translateX(-50%);
@@ -78,14 +86,16 @@
         }
         #viewport-info {
             position: fixed;
-            bottom: 120px;
-            left: 10px;
+            z-index: 1;
+            bottom: 20px;
+            left: 20px;
             font-family: monospace;
             color: #fff;
-            background: rgba(0,0,0,0.7);
+            background: rgb(80, 4, 4);
             padding: 5px;
         }
         #scene-hierarchy {
+            display: none;
             position: fixed;
             left: 10px;
             top: 55%;
@@ -104,6 +114,7 @@
             background: #3a3a3a;
         }
         #material-editor {
+            display: none;
             position: fixed;
             top: 50%;
             right: 10px;
@@ -112,16 +123,19 @@
         }
         
         
-        .hdri-selector {
+        .hdri-selector{
+            display: none;
             position: fixed;
-            bottom: 18%;
-            right: 0;
+            z-index: 1;
+            bottom: 70px;
+            right: 5px;
             margin-bottom: 10px;
             transform: translateX(-50%);
             background: rgba(30,30,30,0.9);
             padding: 10px;
             border-radius: 5px;
         }
+
         .camera-controls {
             position: fixed;
             z-index: 1;
@@ -146,14 +160,25 @@
             border: 1px solid #444;
             margin: 5px 0;
         }
+
+        
+        .input-container {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+      
+        
     </style>
 </head>
 <body>
     <div id="container"></div>
-
-
-         <!-- إضافة أزرار التحكم في HDRI -->
-    <div class="hdri-selector panel">
+    <div id="gui-container"></div>
+    
+    
+    <!-- HDRI Controls-->
+    <div class="hdri-selector panel" id="AddHdri">
         <select id="hdriSelect">
             <option value="forest">Forest</option>
             <option value="desert">Desert</option>
@@ -171,8 +196,12 @@
         <button class="tool-button" id="deleteObject">Delete</button>
         <button class="tool-button" id="undo">Undo</button>
         <button class="tool-button" id="redo">Redo</button>
-        <input type="file" id="glbLoader" accept=".glb,.gltf">
-        <input type="file" id="textureLoader" accept="image/*">
+        <div class="input-container">
+            
+            <input type="file" id="glbLoader" text accept=".glb,.gltf,.fbx">
+            
+            <input type="file" id="textureLoader" accept="image/*">
+        </div>
     </div>
 
     <!-- إضافة أزرار التحكم في الكاميرا -->
@@ -194,7 +223,43 @@
             <button class="tool-button" id="addPlane">Plane</button>
             <button class="tool-button" id="addTorus">Torus</button>
         </div>
-        
+
+        <div class="sculpting-tools" style=" background-color: rgba(0, 0 , 0 , 0.8); padding: 5px; border: 1px solid gray;">
+            <button class="tool-button" id="subdivide">Subdivide</button>
+            <button class="tool-button" id="sculpt">Sculpt</button>
+            <button class="tool-button" id="smooth">Smooth</button>
+            <button class="tool-button" id="inflate">Inflate</button>
+            
+            <div class="brush-controls" style=" background-color: rgba(30,30,30,0.9); padding: 5px; border: 1px solid gray; margin: 5px auto;">
+                <label>Brush Size:
+                    <input type="range" id="brushSize" min="0.1" max="2" step="0.1" value="0.2">
+                </label>
+                <label>Brush Strength:
+                    <input type="range" id="brushStrength" min="0.1" max="1" step="0.1" value="0.5">
+                </label>
+            </div>
+            <div class="tool-group">
+                <label>
+                    <input type="checkbox" id="symmetry">
+                    Activate symmetry
+                </label>
+                <select id="symmetryAxis">
+                    <option value="x">X</option>
+                    <option value="y">Y</option>
+                    <option value="z">Z</option>
+                </select>
+            </div>
+            
+            <div class="tool-group">
+                <label>Soft brush Style:</label>
+                <select id="brushFalloff">
+                    <option value="smooth">smooth</option>
+                    <option value="linear">linear</option>
+                    <option value="constant">fixed</option>
+                </select>
+            </div>
+        </div>
+
         <div class="tool-group">
             <button class="tool-button" id="addPointLight">Point Light</button>
             <button class="tool-button" id="addSpotLight">Directional Light</button>
@@ -212,6 +277,9 @@
             <button class="tool-button" id="stopRecord">Pause</button>
             <button class="tool-button" id="playRecord">Play</button>
         </div>
+
+        <button class="tool-button" onclick="togglePanel('scene-hierarchy')">Scene Sequence</button>
+        <button class="tool-button" onclick="togglePanel('material-editor')">Material Editor</button>
     </div>
 
     <div id="properties" class="panel">
@@ -260,6 +328,8 @@
                 <input type="number" id="scaleZ" step="0.1" value="1">
             </div>
         </div>
+        <button class="tool-button" onclick="togglePanel('timeline')">Timeline</button>
+        <button class="tool-button" onclick="togglePanel('AddHdri')">HDRI</button>
     </div>
 
     <div id="material-editor" class="panel">
@@ -300,8 +370,25 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
-
-
-    <script src="main.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lil-gui@0.17"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.139.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.139.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.139.0/examples/js/controls/TransformControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.139.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.139.0/examples/js/loaders/RGBELoader.js"></script>
+   
+    <script   src="main.mjs"></script>
+    <script>
+        function togglePanel(panelId) {
+            // Hide both panels first
+            document.getElementById('scene-hierarchy').classList.remove('active');
+            document.getElementById('material-editor').classList.remove('active');
+            document.getElementById('timeline').classList.remove('active');
+            document.getElementById('AddHdri').classList.remove('active');
+            
+            // Show the selected panel
+            document.getElementById(panelId).classList.add('active');
+        }
+    </script>
 </body>
 </html>
