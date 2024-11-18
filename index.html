@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <title>Webgl-3D-editor</title>
-
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         body { margin: 0; font-family: Arial, sans-serif; }
         #container { width: 100%; height: 100vh; }
@@ -116,7 +116,8 @@
         #material-editor {
             display: none;
             position: fixed;
-            top: 50%;
+            height: 30vh;
+            top: 70%;
             right: 10px;
             transform: translateY(-50%);
             width: 250px;
@@ -127,8 +128,8 @@
             display: none;
             position: fixed;
             z-index: 1;
-            bottom: 70px;
-            right: 5px;
+            bottom: 22%;
+            right: -100px;
             margin-bottom: 10px;
             transform: translateX(-50%);
             background: rgba(30,30,30,0.9);
@@ -139,7 +140,7 @@
         .camera-controls {
             position: fixed;
             z-index: 1;
-            bottom: 10px;
+            bottom: 12%;
             right: 10px;
             background: rgba(30,30,30,0.9);
             padding: 10px;
@@ -168,7 +169,7 @@
             flex-wrap: wrap;
         }
 
-      
+        
         
     </style>
 </head>
@@ -204,7 +205,7 @@
         </div>
     </div>
 
-    <!-- إضافة أزرار التحكم في الكاميرا -->
+    <!-- Camera Controls-->
     <div class="camera-controls panel">
         <button class="tool-button" id="addCamera">Add Camera</button>
         <button class="tool-button" id="switchCamera">Change Camera</button>
@@ -328,7 +329,6 @@
                 <input type="number" id="scaleZ" step="0.1" value="1">
             </div>
         </div>
-        <button class="tool-button" onclick="togglePanel('timeline')">Timeline</button>
         <button class="tool-button" onclick="togglePanel('AddHdri')">HDRI</button>
     </div>
 
@@ -359,9 +359,7 @@
         <div id="hierarchy-content"></div>
     </div>
 
-    <div id="timeline" class="panel">
-        <!-- Timeline -->
-    </div>
+    
 
     <div id="viewport-info"></div>
 
@@ -377,13 +375,12 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.139.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.139.0/examples/js/loaders/RGBELoader.js"></script>
    
-    <script src="main.mjs"></script>
+    <script   src="main.mjs"></script>
     <script>
         function togglePanel(panelId) {
             // Hide both panels first
             document.getElementById('scene-hierarchy').classList.remove('active');
             document.getElementById('material-editor').classList.remove('active');
-            document.getElementById('timeline').classList.remove('active');
             document.getElementById('AddHdri').classList.remove('active');
             
             // Show the selected panel
