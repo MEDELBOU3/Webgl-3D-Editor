@@ -1,4 +1,6 @@
-    let  scene, camera, renderer, controls, transformControls, orbitControls;
+ 
+
+let  scene, camera, renderer, controls, transformControls, orbitControls;
 
        let currentMode = 'translate';
         let selectedObject = null;
@@ -547,6 +549,7 @@
             }, 1000 / 60);
         }
 
+       
         function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
@@ -1261,3 +1264,436 @@
                 });
             });
         }
+
+
+
+
+
+   
+
+    // Timeline class to manage animation states
+    class Timeline {
+        constructor() {
+            this.keyframes = new Map(); // Map of time -> state
+            this.currentTime = 0;
+            this.duration = 10; // Default 10 seconds
+            this.isPlaying = false;
+            this.fps = 60;
+            this.selectedKeyframe = null;
+            this.isDragging = false;
+            this.isPlaying = false;
+            this.fps = 60;
+            //display and disappears the timeline
+            this.isVisible = false; 
+            this.createToggleButton(); 
+
+            // Create timeline  & keyframe UI
+            this.createUI();
+            this.createKeyframeMarkers();
+
+            // Initially hide the timeline
+           document.getElementById('timeline-container').style.display = 'none';
+        }
+    
+        createToggleButton() {
+            const button = document.createElement('button');
+            button.id = 'timeline-toggle';
+            button.innerHTML = `
+                <style>
+                    #timeline-toggle {
+                        position: fixed;
+                        bottom: 20px;
+                        right: 20px;
+                        width: 50px;
+                        height: 50px;
+                        border-radius: 50%;
+                        background: #444;
+                        border: none;
+                        color: white;
+                        cursor: pointer;
+                        font-size: 20px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        transition: background-color 0.3s, transform 0.3s;
+                        z-index: 1000;
+                    }
+    
+                    #timeline-toggle:hover {
+                        background: #555;
+                        transform: scale(1.1);
+                    }
+    
+                    #timeline-toggle.active {
+                        background: #666;
+                    }
+                </style>
+                <span><i class="fa-solid fa-timeline"></i></span>
+            `;
+    
+            document.body.appendChild(button);
+    
+            button.addEventListener('click', () => this.toggleTimeline());
+        }
+    
+        createUI() {
+            const container = document.createElement('div');
+            container.id = 'timeline-container';
+            container.innerHTML = `
+            <style>
+
+                #timeline-container {
+                    position: fixed;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    height: 150px;
+                    margin: 0 auto;
+                    width: 100%;
+                    background: #2a2a2a;
+                    padding: 10px;
+                    font-family: Arial, sans-serif;
+                    color: #fff;
+                    user-select: none;
+                    z-index: 999;
+                }
+                /* Add animation keyframes */
+                @keyframes slideUp {
+                    from {
+                        transform: translateY(100%);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateY(0);
+                        opacity: 1;
+                    }
+                }
+
+                @keyframes slideDown {
+                    from {
+                        transform: translateY(0);
+                        opacity: 1;
+                    }
+                    to {
+                        transform: translateY(100%);
+                        opacity: 0;
+                    }
+                }
+                .timeline-controls {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    margin-bottom: 10px;
+                }
+
+                .timeline-button {
+                    background: #444;
+                    border: none;
+                    color: white;
+                    padding: 5px 15px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    transition: background 0.2s;
+                }
+
+                .timeline-button:hover {
+                    background: #555;
+                }
+
+                .timeline-button.active {
+                    background: #666;
+                }
+
+                #timeline-track {
+                    position: relative;
+                    height: 60px;
+                    background: #333;
+                    border-radius: 4px;
+                    margin-bottom: 10px;
+                }
+
+                #timeline-playhead {
+                    position: absolute;
+                    top: 0;
+                    width: 2px;
+                    height: 100%;
+                    background: red;
+                    pointer-events: none;
+                }
+
+                .keyframe-marker {
+                    position: absolute;
+                    width: 12px;
+                    height: 12px;
+                    background: #ffbb00;
+                    border-radius: 50%;
+                    top: 50%;
+                    transform: translate(-50%, -50%);
+                    cursor: pointer;
+                    z-index: 1;
+                }
+
+                .keyframe-marker.selected {
+                    border: 2px solid #fff;
+                }
+
+                #timeline-time-markers {
+                    position: relative;
+                    height: 20px;
+                    display: flex;
+                    justify-content: space-between;
+                    padding: 0 10px;
+                }
+
+                .time-marker {
+                    position: absolute;
+                    transform: translateX(-50%);
+                    color: #888;
+                    font-size: 12px;
+                }
+
+                #timeline-properties {
+                    position: absolute;
+                    background: #444;
+                    padding: 10px;
+                    border-radius: 4px;
+                    display: none;
+                }
+            </style>
+            <span><i class="fa-solid fa-timeline"></i></span>
+            <div class="timeline-controls">
+                <button class="timeline-button" id="timeline-play">▶</button>
+                <button class="timeline-button" id="timeline-stop">■</button>
+                <button class="timeline-button" id="timeline-add-keyframe">+ Keyframe</button>
+                <span id="timeline-current-time">0:00</span>
+                <input type="number" id="timeline-duration" min="1" max="300" value="10" style="width: 60px">
+                <span>seconds</span>
+            </div>
+            <div id="timeline-track">
+                <div id="timeline-playhead"></div>
+            </div>
+            <div id="timeline-time-markers"></div>
+            <div id="timeline-properties"></div>
+           `;
+
+           document.body.appendChild(container);
+           this.setupEventListeners();
+           this.createTimeMarkers();
+    
+           
+            
+        }
+    
+        toggleTimeline() {
+            this.isVisible = !this.isVisible;
+            const container = document.getElementById('timeline-container');
+            const toggleButton = document.getElementById('timeline-toggle');
+            
+            if (this.isVisible) {
+                container.style.display = 'block';
+                toggleButton.classList.add('active');
+                // Add animation for showing
+                container.style.animation = 'slideUp 0.3s ease-out';
+            } else {
+                // Add animation for hiding
+                container.style.animation = 'slideDown 0.3s ease-out';
+                container.addEventListener('animationend', () => {
+                    if (!this.isVisible) {
+                        container.style.display = 'none';
+                    }
+                }, { once: true });
+                toggleButton.classList.remove('active');
+            }
+        }
+
+        createTimeMarkers() {
+            const markers = document.getElementById('timeline-time-markers');
+            markers.innerHTML = '';
+            const steps = 10;
+            for (let i = 0; i <= steps; i++) {
+                const marker = document.createElement('div');
+                marker.className = 'time-marker';
+                marker.style.left = `${(i / steps) * 100}%`;
+                marker.textContent = this.formatTime((i / steps) * this.duration);
+                markers.appendChild(marker);
+            }
+        }
+
+        createKeyframeMarkers() {
+            const track = document.getElementById('timeline-track');
+            this.keyframes.forEach((state, time) => {
+                const marker = document.createElement('div');
+                marker.className = 'keyframe-marker';
+                marker.style.left = `${(time / this.duration) * 100}%`;
+                marker.dataset.time = time;
+                track.appendChild(marker);
+            });
+        }
+
+        setupEventListeners() {
+            document.getElementById('timeline-play').onclick = () => this.togglePlay();
+            document.getElementById('timeline-stop').onclick = () => this.stop();
+            document.getElementById('timeline-add-keyframe').onclick = () => this.addKeyframe();
+            
+            const track = document.getElementById('timeline-track');
+            
+            // Track clicking and dragging
+            track.addEventListener('mousedown', (e) => {
+                if (e.target.classList.contains('keyframe-marker')) {
+                    this.startDraggingKeyframe(e);
+                } else {
+                    this.seek(this.getTimeFromPosition(e));
+                }
+            });
+    
+            document.addEventListener('mousemove', (e) => {
+                if (this.isDragging) {
+                    this.dragKeyframe(e);
+                }
+            });
+    
+            document.addEventListener('mouseup', () => {
+                this.isDragging = false;
+            });
+    
+            // Duration input
+            document.getElementById('timeline-duration').addEventListener('change', (e) => {
+                this.duration = Number(e.target.value);
+                this.createTimeMarkers();
+                this.updateUI();
+            });
+    
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.code === 'Space') {
+                    this.togglePlay();
+                }
+                if (e.code === 'Delete' && this.selectedKeyframe) {
+                    this.deleteSelectedKeyframe();
+                }
+            });
+        }
+
+        startDraggingKeyframe(e) {
+            this.isDragging = true;
+            this.selectedKeyframe = e.target;
+            document.querySelectorAll('.keyframe-marker').forEach(marker => {
+                marker.classList.remove('selected');
+            });
+            this.selectedKeyframe.classList.add('selected');
+            this.showKeyframeProperties();
+        }
+    
+        dragKeyframe(e) {
+            if (!this.isDragging || !this.selectedKeyframe) return;
+            
+            const track = document.getElementById('timeline-track');
+            const rect = track.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const newTime = this.getTimeFromPosition(e);
+            
+            // Update keyframe position
+            this.selectedKeyframe.style.left = `${(newTime / this.duration) * 100}%`;
+            
+            // Update keyframe data
+            const oldTime = Number(this.selectedKeyframe.dataset.time);
+            const state = this.keyframes.get(oldTime);
+            this.keyframes.delete(oldTime);
+            this.keyframes.set(newTime, state);
+            this.selectedKeyframe.dataset.time = newTime;
+            
+            this.updateUI();
+        }
+    
+        showKeyframeProperties() {
+            if (!this.selectedKeyframe) return;
+            
+            const properties = document.getElementById('timeline-properties');
+            const time = Number(this.selectedKeyframe.dataset.time);
+            const state = this.keyframes.get(time);
+            
+            properties.style.display = 'block';
+            properties.style.left = `${this.selectedKeyframe.offsetLeft}px`;
+            properties.style.top = `${this.selectedKeyframe.offsetTop - 100}px`;
+            
+            properties.innerHTML = `
+                <div>Time: ${this.formatTime(time)}</div>
+                <div>Position: ${state.position.toArray().map(v => v.toFixed(2)).join(', ')}</div>
+                <div>Rotation: ${state.rotation.toArray().map(v => (v * 180 / Math.PI).toFixed(2)).join(', ')}°</div>
+                <div>Scale: ${state.scale.toArray().map(v => v.toFixed(2)).join(', ')}</div>
+            `;
+        }
+    
+        togglePlay() {
+            this.isPlaying = !this.isPlaying;
+            const playButton = document.getElementById('timeline-play');
+            playButton.textContent = this.isPlaying ? '❚❚' : '▶';
+            playButton.classList.toggle('active');
+            
+            if (this.isPlaying) {
+                this.animate();
+            }
+        }
+    
+        stop() {
+            this.isPlaying = false;
+            this.currentTime = 0;
+            this.updateUI();
+            document.getElementById('timeline-play').textContent = '▶';
+            document.getElementById('timeline-play').classList.remove('active');
+        }
+    
+        getTimeFromPosition(e) {
+            const track = document.getElementById('timeline-track');
+            const rect = track.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            return Math.max(0, Math.min(this.duration, (x / rect.width) * this.duration));
+        }
+    
+        addKeyframe() {
+            if (!selectedObject) return;
+    
+            const state = {
+                position: selectedObject.position.clone(),
+                rotation: selectedObject.rotation.clone(),
+                scale: selectedObject.scale.clone(),
+                objectId: selectedObject.id
+            };
+    
+            this.keyframes.set(this.currentTime, state);
+            this.createKeyframeMarkers();
+            this.updateUI();
+        }
+    
+        deleteSelectedKeyframe() {
+            if (!this.selectedKeyframe) return;
+            
+            const time = Number(this.selectedKeyframe.dataset.time);
+            this.keyframes.delete(time);
+            this.selectedKeyframe.remove();
+            this.selectedKeyframe = null;
+            document.getElementById('timeline-properties').style.display = 'none';
+            this.updateUI();
+        }
+    
+        // ... (keep the previous animation and interpolation methods)
+    
+        updateUI() {
+            const playhead = document.getElementById('timeline-playhead');
+            const timeDisplay = document.getElementById('timeline-current-time');
+            
+            playhead.style.left = `${(this.currentTime / this.duration) * 100}%`;
+            timeDisplay.textContent = this.formatTime(this.currentTime);
+        }
+    
+        formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = Math.floor(seconds % 60);
+            const milliseconds = Math.floor((seconds % 1) * 100);
+            return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`;
+        }
+    }
+    
+    // Initialize timeline
+    const timeline = new Timeline();
+    
