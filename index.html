@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8">
     <title>Webgl-3D-editor</title>
@@ -21,10 +21,14 @@
             display: block !important;
         }
 
+        
+
         #toolbar {
             top: 10px;
             left: 10px;
             max-width: 280px;
+            height: 78vh;
+            overflow-y: auto;
             display: flex;
             flex-direction: column;
         }
@@ -32,6 +36,8 @@
             top: 10px;
             right: 10px;
             width: 250px;
+            height: 60vh;
+            overflow-y: auto;
         }
         #timeline {
             display: none;
@@ -92,7 +98,9 @@
             font-family: monospace;
             color: #fff;
             background: rgb(80, 4, 4);
-            padding: 5px;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid red;
         }
         #scene-hierarchy {
             display: none;
@@ -123,6 +131,7 @@
             width: 250px;
         }
         
+       
         
         .hdri-selector{
             display: none;
@@ -169,8 +178,83 @@
             flex-wrap: wrap;
         }
 
+        .video-timeline {
+            background: #2a2a2a;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
         
+        .timeline-slider {
+            width: 100%;
+            margin: 10px 0;
+        }
         
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .timeline-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8em;
+            color: #888;
+        }
+        
+        .shots-container {
+            margin-top: 20px;
+            width: 250px;
+        }
+        
+        .shot-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px;
+            background: #333;
+            max-width: 250px;
+            margin: 5px 0;
+            border-radius: 3px;
+        }
+        
+        #close-button {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background-color: #f44336; /* Red */
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            text-align: center;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        
+        #close-button:hover {
+            background-color: #d32f2f; /* Darker red on hover */
+        }
+        
+        #toolbar::-webkit-scrollbar, #properties::-webkit-scrollbar {
+            width: 12px;
+            background-color: #2a2a2a;
+        }
+        #toolbar::-webkit-scrollbar-thumb, #properties::-webkit-scrollbar-thumb{
+            background-color: #272b27;
+            border-radius: none;
+        }
+
+        ::-webkit-slider-thumb:hover, #properties::-webkit-scrollbar-thumb{
+            background-color: #212b21;
+            border-radius: none;
+        }
+
+        #toolbar::-webkit-scrollbar-track, #properties::-webkit-scrollbar-track{
+            background-color: #888;
+        }
     </style>
 </head>
 <body>
@@ -180,6 +264,9 @@
     
     <!-- HDRI Controls-->
     <div class="hdri-selector panel" id="AddHdri">
+        <button id="close-button" style="float: right; background: red; color: white; border: none; cursor: pointer; padding: 5px;">
+            X
+        </button>
         <select id="hdriSelect">
             <option value="forest">Forest</option>
             <option value="desert">Desert</option>
@@ -215,7 +302,11 @@
         </select>
     </div>
 
-   
+    
+    
+    
+    
+    
     <div id="toolbar" class="panel">
         <div class="tool-group">
             <button class="tool-button" id="addCube">Cube</button>
@@ -329,10 +420,22 @@
                 <input type="number" id="scaleZ" step="0.1" value="1">
             </div>
         </div>
+        <input type="file" id="videoLoader" accept="video/mp4" style="display: none;">
+        <button class="tool-button" onclick="document.getElementById('videoLoader').click()">Add Video</button>
+
+        
+
+        <div class="shots-panel">
+            <button class="tool-button" id="createShot">Create Shot</button>
+            <div id="shots-container"></div>
+        </div>
         <button class="tool-button" onclick="togglePanel('AddHdri')">HDRI</button>
     </div>
 
     <div id="material-editor" class="panel">
+        <button id="close-button" style="float: right; background: red; color: white; border: none; cursor: pointer; padding: 5px;">
+            X
+        </button>
         <h3>Material Editor</h3>
         <div class="property-group">
             <div class="property-row">
@@ -355,14 +458,21 @@
     </div>
 
     <div id="scene-hierarchy" class="panel">
+        <button id="close-button" style="float: right; background: red; color: white; border: none; cursor: pointer; padding: 5px;">
+            X
+        </button>
         <h3>Scene Sequence</h3>
         <div id="hierarchy-content"></div>
     </div>
 
     
 
-    <div id="viewport-info"></div>
-
+    <div id="viewport-info" style=" display: flex;">
+        <div id="fps" style=" background-color: rgb(164, 30, 190); padding: 3px; margin: 0 2px;">FPS: 0</div>
+        <div id="objects" style=" background-color: rgba(0, 255, 21, 0.767); padding: 3px; margin: 0 2px;">Objects: 0</div>
+        <div id="polygons" style=" background-color: rgb(0, 118, 187); padding: 3px; margin: 0 2px;">Polygons: 0</div>
+    </div>
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -374,8 +484,13 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.139.0/examples/js/controls/TransformControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.139.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.139.0/examples/js/loaders/RGBELoader.js"></script>
-   
-    <script   src="script.js"></script>
+
+
+
+    <script async src="https://unpkg.com/es-module-shims@1.8.0/dist/es-module-shims.js"></script>
+    
+    
+    <script src="script.js"></script>
     <script>
         function togglePanel(panelId) {
             // Hide both panels first
@@ -386,6 +501,16 @@
             // Show the selected panel
             document.getElementById(panelId).classList.add('active');
         }
+
+        // Close Button Functionality
+        document.getElementById("close-button").addEventListener("click", function() {
+            document.getElementById("scene-hierarchy").classList.remove("active");
+            document.getElementById("material-editor").classList.remove("active");
+            document.getElementById("AddHdri").classList.remove("active");
+        });
+        
     </script>
 </body>
 </html>
+
+
