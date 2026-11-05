@@ -1,517 +1,1531 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <title>Webgl-3D-editor</title>
-    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apex 3D Web Studio Engine</title>
+    <!-- Icons & Typography -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
     <style>
-        body { margin: 0; font-family: Arial, sans-serif; }
-        #container { width: 100%; height: 100vh; }
-        #gui-container { position: absolute; top: 0; right: 0; }
-        .panel {
-            position: fixed;
-            background: rgba(30,30,30,0.9);
+        :root {
+            --bg-base: #121316;
+            --bg-panel: #1a1b1e;
+            --bg-panel-header: #212226;
+            --bg-input: #282a2f;
+            --bg-hover: #32353b;
+            --accent: #007acc;
+            --accent-hover: #0098ff;
+            --danger: #e04848;
+            --warning: #ffaa00;
+            --text-main: #f0f1f3;
+            --text-muted: #8b8e96;
+            --border-color: #2b2d33;
+            --sidebar-width: 320px;
+            --timeline-height: 190px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            font-size: 12px;
+        }
+
+        /* Top Menu Bar */
+        #topbar {
+            height: 42px;
+            background: var(--bg-panel-header);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            z-index: 100;
+        }
+
+        .brand {
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .brand i { color: var(--accent); font-size: 16px; }
+
+        .menu-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Buttons & Controls */
+        .btn {
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 11px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s ease;
+        }
+        .btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--text-muted);
+        }
+        .btn.active {
+            background: var(--accent);
+            border-color: var(--accent-hover);
             color: #fff;
-            padding: 10px;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+        .btn.danger:hover {
+            background: var(--danger);
+            border-color: var(--danger);
         }
 
-        .active {
-            display: block !important;
+        /* Main Workspace Layout */
+        #workspace {
+            display: flex;
+            flex: 1;
+            position: relative;
+            overflow: hidden;
         }
 
-        
+        /* Left Toolbar */
+        #toolbar-left {
+            width: 50px;
+            background: var(--bg-panel);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px 0;
+            gap: 6px;
+            z-index: 10;
+        }
+        .tool-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 6px;
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            transition: all 0.15s ease;
+        }
+        .tool-btn:hover {
+            color: var(--text-main);
+            background: var(--bg-hover);
+        }
+        .tool-btn.active {
+            color: #fff;
+            background: var(--accent);
+            border-color: var(--accent-hover);
+        }
+        .tool-sep {
+            width: 30px;
+            height: 1px;
+            background: var(--border-color);
+            margin: 4px 0;
+        }
 
-        #toolbar {
-            top: 10px;
-            left: 10px;
-            max-width: 280px;
-            height: 78vh;
+        /* 3D Viewport */
+        #viewport-container {
+            flex: 1;
+            position: relative;
+            background: #1e1e1e;
+            overflow: hidden;
+        }
+        #webgl-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* Viewport Overlays */
+        #viewport-stats {
+            position: absolute;
+            top: 14px;
+            left: 14px;
+            background: rgba(22, 23, 27, 0.75);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px 12px;
+            display: flex;
+            gap: 14px;
+            font-family: monospace;
+            font-size: 11px;
+            pointer-events: none;
+        }
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .stat-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #00d26a;
+        }
+
+        #viewport-modes {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            background: rgba(22, 23, 27, 0.75);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 4px;
+            display: flex;
+            gap: 2px;
+        }
+
+        /* Right Inspector Panel */
+        #inspector {
+            width: var(--sidebar-width);
+            background: var(--bg-panel);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+            overflow: hidden;
+        }
+
+        .tab-bar {
+            display: flex;
+            background: var(--bg-panel-header);
+            border-bottom: 1px solid var(--border-color);
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 10px 0;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+            background: rgba(0, 122, 204, 0.05);
+        }
+
+        .tab-content {
+            flex: 1;
             overflow-y: auto;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .tab-content::-webkit-scrollbar { width: 5px; }
+        .tab-content::-webkit-scrollbar-track { background: transparent; }
+        .tab-content::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+
+        /* Panels & Accordions */
+        .panel-box {
+            background: var(--bg-base);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .panel-box-title {
+            background: var(--bg-panel-header);
+            padding: 8px 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .panel-box-body {
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* Property Grid / Rows */
+        .prop-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .prop-label {
+            color: var(--text-muted);
+            font-size: 11px;
+            min-width: 65px;
+        }
+        .prop-inputs-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 4px;
+            flex: 1;
+        }
+        .field-wrap {
+            display: flex;
+            align-items: center;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+            padding: 2px 4px;
+        }
+        .field-wrap:focus-within {
+            border-color: var(--accent);
+        }
+        .field-wrap span {
+            color: var(--text-muted);
+            font-size: 9px;
+            font-weight: 700;
+            margin-right: 4px;
+        }
+        .field-wrap input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            font-family: monospace;
+            font-size: 11px;
+            outline: none;
+        }
+
+        .select-input, .range-input {
+            width: 100%;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 5px 8px;
+            border-radius: 4px;
+            outline: none;
+            font-size: 11px;
+        }
+        .color-picker {
+            width: 100%;
+            height: 28px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: var(--bg-input);
+            cursor: pointer;
+            padding: 1px 2px;
+        }
+
+        /* Hierarchy Outliner */
+        .outliner-tree {
+            list-style: none;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+        .tree-node {
+            padding: 6px 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-radius: 4px;
+            margin-bottom: 2px;
+            color: var(--text-main);
+        }
+        .tree-node:hover {
+            background: var(--bg-hover);
+        }
+        .tree-node.selected {
+            background: rgba(0, 122, 204, 0.25);
+            border: 1px solid var(--accent);
+            color: #fff;
+        }
+        .tree-node-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .tree-node-title i {
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        /* Material Presets Grid */
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+        }
+        .preset-card {
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 6px 4px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 10px;
+            transition: all 0.2s;
+        }
+        .preset-card:hover {
+            border-color: var(--accent);
+            background: var(--bg-hover);
+        }
+
+        /* Bottom Timeline & Sequencer Panel */
+        #bottom-panel {
+            height: var(--timeline-height);
+            background: var(--bg-panel);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            z-index: 20;
+            transition: height 0.2s ease;
+        }
+        #bottom-panel.collapsed {
+            height: 32px;
+        }
+
+        .timeline-header {
+            height: 32px;
+            background: var(--bg-panel-header);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 14px;
+        }
+        .timeline-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .timeline-workspace {
+            flex: 1;
+            position: relative;
+            background: #18191c;
+            overflow-x: auto;
+            overflow-y: hidden;
             display: flex;
             flex-direction: column;
         }
-        #properties {
-            top: 10px;
-            right: 10px;
-            width: 250px;
-            height: 60vh;
-            overflow-y: auto;
+
+        #timeline-ruler {
+            height: 24px;
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border-color);
+            position: relative;
         }
-        #timeline {
-            display: none;
-            bottom: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 80%;
-            height: 100px;
-            background: rgba(40,40,40,0.9);
-        }
-        .tool-group {
-            margin: 5px 0;
-            padding: 5px;
-            border: 1px solid #444;
-        }
-        .tool-button {
-            background: #2a2a2a;
-            border: 1px solid #444;
-            color: white;
-            padding: 8px 16px;
-            margin: 4px;
-            border-radius: 4px;
+        #timeline-tracks {
+            flex: 1;
+            position: relative;
             cursor: pointer;
-            transition: background 0.3s;
         }
-        .tool-button:hover {
-            background: #3a3a3a;
-        }
-        .tool-button.active {
-            background: #4CAF50;
-        }
-        .property-group {
-            margin: 5px 0;
-            padding: 5px;
-            border: 1px solid #444;
-        }
-        .property-row {
-            display: flex;
-            justify-content: space-between;
-            margin: 5px 0;
-        }
-        input[type="number"], input[type="color"] {
-            width: 60px;
-            background: #2a2a2a;
-            border: 1px solid #444;
-            color: white;
-        }
-        .texture-preview {
-            width: 50px;
-            height: 50px;
-            border: 1px solid #444;
-        }
-        #viewport-info {
-            position: fixed;
-            z-index: 1;
-            bottom: 20px;
-            left: 20px;
-            font-family: monospace;
-            color: #fff;
-            background: rgb(80, 4, 4);
-            padding: 8px;
-            border-radius: 5px;
-            border: 1px solid red;
-        }
-        #scene-hierarchy {
-            display: none;
-            position: fixed;
-            left: 10px;
-            top: 55%;
-            margin: 10px auto;
-            transform: translateY(-50%);
-            max-height: 30vh;
-            overflow-y: auto;
-            width: 200px;
-        }
-        .hierarchy-item {
-            padding: 5px;
-            cursor: pointer;
-            border-bottom: 1px solid #444;
-        }
-        .hierarchy-item:hover {
-            background: #3a3a3a;
-        }
-        #material-editor {
-            display: none;
-            position: fixed;
-            height: 30vh;
-            top: 70%;
-            right: 10px;
-            transform: translateY(-50%);
-            width: 250px;
-        }
-        
-       
-        
-        .hdri-selector{
-            display: none;
-            position: fixed;
-            z-index: 1;
-            bottom: 22%;
-            right: -100px;
-            margin-bottom: 10px;
-            transform: translateX(-50%);
-            background: rgba(30,30,30,0.9);
-            padding: 10px;
-            border-radius: 5px;
-        }
-
-        .camera-controls {
-            position: fixed;
-            z-index: 1;
-            bottom: 12%;
-            right: 10px;
-            background: rgba(30,30,30,0.9);
-            padding: 10px;
-            border-radius: 5px;
-        }
-        .file-controls {
-            position: fixed;
-            top: 50px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(30,30,30,0.9);
-            padding: 10px;
-            border-radius: 5px;
-        }
-        #hdriPreview {
-            width: 100px;
-            height: 60px;
-            border: 1px solid #444;
-            margin: 5px 0;
-        }
-
-        
-        .input-container {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .video-timeline {
-            background: #2a2a2a;
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 5px;
-        }
-        
-        .timeline-slider {
-            width: 100%;
-            margin: 10px 0;
-        }
-        
-        .timeline-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .timeline-info {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.8em;
-            color: #888;
-        }
-        
-        .shots-container {
-            margin-top: 20px;
-            width: 250px;
-        }
-        
-        .shot-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 5px;
-            background: #333;
-            max-width: 250px;
-            margin: 5px 0;
-            border-radius: 3px;
-        }
-        
-        #close-button {
+        #playhead {
             position: absolute;
-            top: 5px;
-            right: 5px;
-            background-color: #f44336; /* Red */
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 25px;
-            height: 25px;
-            text-align: center;
-            font-size: 16px;
-            cursor: pointer;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--accent-hover);
+            pointer-events: none;
+            z-index: 5;
+            left: 0;
         }
-        
-        #close-button:hover {
-            background-color: #d32f2f; /* Darker red on hover */
-        }
-        
-        #toolbar::-webkit-scrollbar, #properties::-webkit-scrollbar {
+        #playhead::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -5px;
             width: 12px;
-            background-color: #2a2a2a;
-        }
-        #toolbar::-webkit-scrollbar-thumb, #properties::-webkit-scrollbar-thumb{
-            background-color: #272b27;
-            border-radius: none;
+            height: 10px;
+            background: var(--accent-hover);
+            clip-path: polygon(0 0, 100% 0, 50% 100%);
         }
 
-        ::-webkit-slider-thumb:hover, #properties::-webkit-scrollbar-thumb{
-            background-color: #212b21;
-            border-radius: none;
+        .keyframe-node {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: var(--warning);
+            transform: translate(-50%, -50%) rotate(45deg);
+            top: 50%;
+            cursor: pointer;
+            z-index: 4;
+            border: 1px solid #000;
+        }
+        .keyframe-node:hover {
+            transform: translate(-50%, -50%) rotate(45deg) scale(1.3);
+            background: #fff;
         }
 
-        #toolbar::-webkit-scrollbar-track, #properties::-webkit-scrollbar-track{
-            background-color: #888;
-        }
+        /* Hidden File Inputs */
+        input[type="file"] { display: none; }
     </style>
 </head>
 <body>
-    <div id="container"></div>
-    <div id="gui-container"></div>
-    
-    
-    <!-- HDRI Controls-->
-    <div class="hdri-selector panel" id="AddHdri">
-        <button id="close-button" style="float: right; background: red; color: white; border: none; cursor: pointer; padding: 5px;">
-            X
-        </button>
-        <select id="hdriSelect">
-            <option value="forest">Forest</option>
-            <option value="desert">Desert</option>
-            <option value="city">City</option>
-            <option value="studio">Studio</option>
-        </select>
-        <div id="hdriPreview"></div>
-        <input type="file" id="customHdri" accept=".hdr,.exr">
-    </div>
 
-    <!-- إضافة أزرار التحكم في الملفات -->
-    <div class="file-controls panel">
-        <button class="tool-button" id="copyObject">Copy</button>
-        <button class="tool-button" id="pasteObject">Past</button>
-        <button class="tool-button" id="deleteObject">Delete</button>
-        <button class="tool-button" id="undo">Undo</button>
-        <button class="tool-button" id="redo">Redo</button>
-        <div class="input-container">
-            
-            <input type="file" id="glbLoader" text accept=".glb,.gltf,.fbx">
-            
-            <input type="file" id="textureLoader" accept="image/*">
-        </div>
-    </div>
-
-    <!-- Camera Controls-->
-    <div class="camera-controls panel">
-        <button class="tool-button" id="addCamera">Add Camera</button>
-        <button class="tool-button" id="switchCamera">Change Camera</button>
-        <select id="cameraSelect">
-            <option value="perspective">View</option>
-            <option value="orthographic">Ortogonal</option>
-        </select>
-    </div>
-
-    
-    
-    
-    
-    
-    <div id="toolbar" class="panel">
-        <div class="tool-group">
-            <button class="tool-button" id="addCube">Cube</button>
-            <button class="tool-button" id="addSphere">Sphere</button>
-            <button class="tool-button" id="addCylinder">Cylinder</button>
-            <button class="tool-button" id="addPlane">Plane</button>
-            <button class="tool-button" id="addTorus">Torus</button>
+    <!-- TOP MENU BAR -->
+    <header id="topbar">
+        <div class="brand">
+            <i class="fa-solid fa-cube"></i> APEX 3D STUDIO
         </div>
 
-        <div class="sculpting-tools" style=" background-color: rgba(0, 0 , 0 , 0.8); padding: 5px; border: 1px solid gray;">
-            <button class="tool-button" id="subdivide">Subdivide</button>
-            <button class="tool-button" id="sculpt">Sculpt</button>
-            <button class="tool-button" id="smooth">Smooth</button>
-            <button class="tool-button" id="inflate">Inflate</button>
-            
-            <div class="brush-controls" style=" background-color: rgba(30,30,30,0.9); padding: 5px; border: 1px solid gray; margin: 5px auto;">
-                <label>Brush Size:
-                    <input type="range" id="brushSize" min="0.1" max="2" step="0.1" value="0.2">
-                </label>
-                <label>Brush Strength:
-                    <input type="range" id="brushStrength" min="0.1" max="1" step="0.1" value="0.5">
-                </label>
+        <div class="menu-actions">
+            <button class="btn" id="btn-import-model"><i class="fa-solid fa-file-import"></i> Import Model</button>
+            <button class="btn" id="btn-export-gltf"><i class="fa-solid fa-file-export"></i> Export Scene</button>
+            <button class="btn" id="btn-snapshot"><i class="fa-solid fa-camera"></i> Snapshot</button>
+            <div style="width: 1px; height: 16px; background: var(--border-color); margin: 0 4px;"></div>
+            <button class="btn" id="btn-undo" title="Ctrl+Z"><i class="fa-solid fa-rotate-left"></i></button>
+            <button class="btn" id="btn-redo" title="Ctrl+Y"><i class="fa-solid fa-rotate-right"></i></button>
+        </div>
+    </header>
+
+    <!-- WORKSPACE -->
+    <main id="workspace">
+
+        <!-- LEFT QUICK TOOLBAR -->
+        <aside id="toolbar-left">
+            <button class="tool-btn active" id="tool-select" title="Select (Q)"><i class="fa-solid fa-arrow-pointer"></i></button>
+            <button class="tool-btn" id="tool-translate" title="Translate (W)"><i class="fa-solid fa-arrows-up-down-left-right"></i></button>
+            <button class="tool-btn" id="tool-rotate" title="Rotate (E)"><i class="fa-solid fa-arrows-rotate"></i></button>
+            <button class="tool-btn" id="tool-scale" title="Scale (R)"><i class="fa-solid fa-maximize"></i></button>
+            <div class="tool-sep"></div>
+            <button class="tool-btn" id="add-cube" title="Add Cube"><i class="fa-solid fa-cube"></i></button>
+            <button class="tool-btn" id="add-sphere" title="Add Sphere"><i class="fa-solid fa-globe"></i></button>
+            <button class="tool-btn" id="add-cylinder" title="Add Cylinder"><i class="fa-solid fa-database"></i></button>
+            <button class="tool-btn" id="add-torus" title="Add Torus"><i class="fa-solid fa-circle-notch"></i></button>
+            <div class="tool-sep"></div>
+            <button class="tool-btn" id="add-light" title="Add Light"><i class="fa-solid fa-lightbulb"></i></button>
+            <button class="tool-btn" id="tool-sculpt" title="Sculpt Brush Mode"><i class="fa-solid fa-hand-fist"></i></button>
+        </aside>
+
+        <!-- 3D VIEWPORT -->
+        <section id="viewport-container">
+            <div id="viewport-stats">
+                <div class="stat-item"><div class="stat-dot"></div> <span id="stat-fps">60 FPS</span></div>
+                <div class="stat-item">Triangles: <span id="stat-poly">0</span></div>
+                <div class="stat-item">Objects: <span id="stat-objs">0</span></div>
             </div>
-            <div class="tool-group">
-                <label>
-                    <input type="checkbox" id="symmetry">
-                    Activate symmetry
-                </label>
-                <select id="symmetryAxis">
-                    <option value="x">X</option>
-                    <option value="y">Y</option>
-                    <option value="z">Z</option>
-                </select>
+
+            <div id="viewport-modes">
+                <button class="btn active" id="shading-lit" title="PBR Shading"><i class="fa-solid fa-sun"></i></button>
+                <button class="btn" id="shading-wire" title="Wireframe"><i class="fa-solid fa-border-none"></i></button>
             </div>
-            
-            <div class="tool-group">
-                <label>Soft brush Style:</label>
-                <select id="brushFalloff">
-                    <option value="smooth">smooth</option>
-                    <option value="linear">linear</option>
-                    <option value="constant">fixed</option>
-                </select>
+
+            <canvas id="webgl-canvas"></canvas>
+        </section>
+
+        <!-- RIGHT INSPECTOR DOCK -->
+        <aside id="inspector">
+            <nav class="tab-bar">
+                <button class="tab-btn active" data-tab="tab-scene"><i class="fa-solid fa-layer-group"></i> Scene</button>
+                <button class="tab-btn" data-tab="tab-material"><i class="fa-solid fa-palette"></i> Material</button>
+                <button class="tab-btn" data-tab="tab-environment"><i class="fa-solid fa-cloud-sun"></i> World</button>
+                <button class="tab-btn" data-tab="tab-sculpt"><i class="fa-solid fa-paint-brush"></i> Sculpt</button>
+            </nav>
+
+            <!-- SCENE & TRANSFORM TAB -->
+            <div class="tab-content" id="tab-scene">
+                <!-- Outliner -->
+                <div class="panel-box">
+                    <div class="panel-box-title">
+                        <span>Outliner</span>
+                        <button class="btn danger" id="btn-delete-node" style="padding: 2px 6px;"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                    <ul class="outliner-tree" id="outliner-list"></ul>
+                </div>
+
+                <!-- Transform Panel -->
+                <div class="panel-box">
+                    <div class="panel-box-title">Transform</div>
+                    <div class="panel-box-body">
+                        <div class="prop-row">
+                            <span class="prop-label">Position</span>
+                            <div class="prop-inputs-3">
+                                <div class="field-wrap"><span>X</span><input type="number" id="pos-x" step="0.1"></div>
+                                <div class="field-wrap"><span>Y</span><input type="number" id="pos-y" step="0.1"></div>
+                                <div class="field-wrap"><span>Z</span><input type="number" id="pos-z" step="0.1"></div>
+                            </div>
+                        </div>
+                        <div class="prop-row">
+                            <span class="prop-label">Rotation</span>
+                            <div class="prop-inputs-3">
+                                <div class="field-wrap"><span>X</span><input type="number" id="rot-x" step="1"></div>
+                                <div class="field-wrap"><span>Y</span><input type="number" id="rot-y" step="1"></div>
+                                <div class="field-wrap"><span>Z</span><input type="number" id="rot-z" step="1"></div>
+                            </div>
+                        </div>
+                        <div class="prop-row">
+                            <span class="prop-label">Scale</span>
+                            <div class="prop-inputs-3">
+                                <div class="field-wrap"><span>X</span><input type="number" id="scale-x" step="0.1"></div>
+                                <div class="field-wrap"><span>Y</span><input type="number" id="scale-y" step="0.1"></div>
+                                <div class="field-wrap"><span>Z</span><input type="number" id="scale-z" step="0.1"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Camera Shots List -->
+                <div class="panel-box">
+                    <div class="panel-box-title">
+                        <span>Camera Director</span>
+                        <button class="btn" id="btn-create-shot" style="padding: 2px 6px;">+ Store Shot</button>
+                    </div>
+                    <div class="panel-box-body" id="shots-list" style="max-height: 120px; overflow-y: auto;">
+                        <span style="color: var(--text-muted); text-align: center;">No stored shots</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MATERIAL INSPECTOR TAB -->
+            <div class="tab-content" id="tab-material" style="display: none;">
+                <div class="panel-box">
+                    <div class="panel-box-title">Presets</div>
+                    <div class="panel-box-body">
+                        <div class="preset-grid">
+                            <div class="preset-card" onclick="studio.applyPreset('gold')">Gold</div>
+                            <div class="preset-card" onclick="studio.applyPreset('chrome')">Chrome</div>
+                            <div class="preset-card" onclick="studio.applyPreset('glass')">Glass</div>
+                            <div class="preset-card" onclick="studio.applyPreset('rubber')">Rubber</div>
+                            <div class="preset-card" onclick="studio.applyPreset('plastic')">Plastic</div>
+                            <div class="preset-card" onclick="studio.applyPreset('wood')">Wood</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-box">
+                    <div class="panel-box-title">PBR Properties</div>
+                    <div class="panel-box-body">
+                        <div class="prop-row">
+                            <span class="prop-label">Color</span>
+                            <input type="color" id="mat-color" class="color-picker" value="#cccccc">
+                        </div>
+                        <div class="prop-row">
+                            <span class="prop-label">Roughness</span>
+                            <input type="range" id="mat-roughness" min="0" max="1" step="0.01" class="range-input">
+                        </div>
+                        <div class="prop-row">
+                            <span class="prop-label">Metalness</span>
+                            <input type="range" id="mat-metalness" min="0" max="1" step="0.01" class="range-input">
+                        </div>
+                        <div class="prop-row">
+                            <span class="prop-label">Clearcoat</span>
+                            <input type="range" id="mat-clearcoat" min="0" max="1" step="0.01" class="range-input">
+                        </div>
+                        <div class="prop-row">
+                            <span class="prop-label">Transmission</span>
+                            <input type="range" id="mat-transmission" min="0" max="1" step="0.01" class="range-input">
+                        </div>
+                        <div class="prop-row">
+                            <span class="prop-label">Wireframe</span>
+                            <input type="checkbox" id="mat-wireframe">
+                        </div>
+                        <div class="prop-row">
+                            <button class="btn" style="width: 100%;" id="btn-upload-tex"><i class="fa-solid fa-image"></i> Load Texture Map</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WORLD / ENVIRONMENT TAB -->
+            <div class="tab-content" id="tab-environment" style="display: none;">
+                <div class="panel-box">
+                    <div class="panel-box-title">Lighting Setup</div>
+                    <div class="panel-box-body">
+                        <div class="prop-row">
+                            <span class="prop-label">Sun Intensity</span>
+                            <input type="range" id="env-sun-intensity" min="0" max="5" step="0.1" value="1.5" class="range-input">
+                        </div>
+                        <div class="prop-row">
+                            <span class="prop-label">Ambient</span>
+                            <input type="color" id="env-ambient-color" class="color-picker" value="#333333">
+                        </div>
+                        <div class="prop-row">
+                            <span class="prop-label">Background</span>
+                            <input type="color" id="env-bg-color" class="color-picker" value="#1a1b1e">
+                        </div>
+                        <div class="prop-row">
+                            <button class="btn" style="width: 100%;" id="btn-upload-hdri"><i class="fa-solid fa-mountain-sun"></i> Custom HDRI (.hdr)</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SCULPTING BRUSH TAB -->
+            <div class="tab-content" id="tab-sculpt" style="display: none;">
+                <div class="panel-box">
+                    <div class="panel-box-title">Brush Controls</div>
+                    <div class="panel-box-body">
+                        <div class="prop-row">
+                            <span class="prop-label">Brush Mode</span>
+                            <select id="sculpt-mode" class="select-input">
+                                <option value="sculpt">Push</option>
+                                <option value="inflate">Inflate</option>
+                                <option value="smooth">Smooth</option>
+                                <option value="flatten">Flatten</option>
+                            </select>
+                        </div>
+                        <div class="prop-row">
+                            <span class="prop-label">Size</span>
+                            <input type="range" id="sculpt-size" min="0.1" max="2" step="0.05" value="0.5" class="range-input">
+                        </div>
+                        <div class="prop-row">
+                            <span class="prop-label">Strength</span>
+                            <input type="range" id="sculpt-strength" min="0.05" max="1" step="0.05" value="0.2" class="range-input">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- TIMELINE & ANIMATION SEQUENCER -->
+    <footer id="bottom-panel">
+        <div class="timeline-header">
+            <div class="timeline-controls">
+                <button class="btn" id="tl-play"><i class="fa-solid fa-play"></i></button>
+                <button class="btn" id="tl-stop"><i class="fa-solid fa-stop"></i></button>
+                <button class="btn" id="tl-add-key"><i class="fa-solid fa-key"></i> + Keyframe</button>
+                <span id="tl-timecode" style="font-family: monospace; margin-left: 10px;">0.00s</span>
+            </div>
+            <div>
+                <button class="btn" id="tl-toggle-panel"><i class="fa-solid fa-chevron-down"></i></button>
             </div>
         </div>
-
-        <div class="tool-group">
-            <button class="tool-button" id="addPointLight">Point Light</button>
-            <button class="tool-button" id="addSpotLight">Directional Light</button>
-            <button class="tool-button" id="addAmbientLight">Ambient Light</button>
-        </div>
-        
-        <div class="tool-group">
-            <button class="tool-button" id="translate">Translation</button>
-            <button class="tool-button" id="rotate">Rotation</button>
-            <button class="tool-button" id="scale">Scaling</button>
-        </div>
-        
-        <div class="tool-group">
-            <button class="tool-button" id="startRecord">Record</button>
-            <button class="tool-button" id="stopRecord">Pause</button>
-            <button class="tool-button" id="playRecord">Play</button>
-        </div>
-
-        <button class="tool-button" onclick="togglePanel('scene-hierarchy')">Scene Sequence</button>
-        <button class="tool-button" onclick="togglePanel('material-editor')">Material Editor</button>
-    </div>
-
-    <div id="properties" class="panel">
-        <h3>Object Properties</h3>
-        <div class="property-group">
-            <div class="property-row">
-                <span>Pos X:</span>
-                <input type="number" id="posX" step="0.1">
-            </div>
-            <div class="property-row">
-                <span>Pos Y:</span>
-                <input type="number" id="posY" step="0.1">
-            </div>
-            <div class="property-row">
-                <span>Pos Z:</span>
-                <input type="number" id="posZ" step="0.1">
+        <div class="timeline-workspace">
+            <div id="timeline-ruler"></div>
+            <div id="timeline-tracks">
+                <div id="playhead"></div>
             </div>
         </div>
-        
-        <div class="property-group">
-            <div class="property-row">
-                <span>Rot X:</span>
-                <input type="number" id="rotX" step="0.1">
-            </div>
-            <div class="property-row">
-                <span>Rot Y:</span>
-                <input type="number" id="rotY" step="0.1">
-            </div>
-            <div class="property-row">
-                <span>Rot Z:</span>
-                <input type="number" id="rotZ" step="0.1">
-            </div>
-        </div>
-        
-        <div class="property-group">
-            <div class="property-row">
-                <span>Scale X:</span>
-                <input type="number" id="scaleX" step="0.1" value="1">
-            </div>
-            <div class="property-row">
-                <span>Scale Y:</span>
-                <input type="number" id="scaleY" step="0.1" value="1">
-            </div>
-            <div class="property-row">
-                <span>Scale Z:</span>
-                <input type="number" id="scaleZ" step="0.1" value="1">
-            </div>
-        </div>
-        <input type="file" id="videoLoader" accept="video/mp4" style="display: none;">
-        <button class="tool-button" onclick="document.getElementById('videoLoader').click()">Add Video</button>
+    </footer>
 
-        
+    <!-- HIDDEN INPUTS -->
+    <input type="file" id="file-model" accept=".gltf,.glb">
+    <input type="file" id="file-texture" accept="image/*">
+    <input type="file" id="file-hdri" accept=".hdr">
 
-        <div class="shots-panel">
-            <button class="tool-button" id="createShot">Create Shot</button>
-            <div id="shots-container"></div>
-        </div>
-        <button class="tool-button" onclick="togglePanel('AddHdri')">HDRI</button>
-    </div>
-
-    <div id="material-editor" class="panel">
-        <button id="close-button" style="float: right; background: red; color: white; border: none; cursor: pointer; padding: 5px;">
-            X
-        </button>
-        <h3>Material Editor</h3>
-        <div class="property-group">
-            <div class="property-row">
-                <span>Color:</span>
-                <input type="color" id="materialColor">
-            </div>
-            <div class="property-row">
-                <span>Shine:</span>
-                <input type="number" id="materialMetalness" min="0" max="1" step="0.1">
-            </div>
-            <div class="property-row">
-                <span>Roughness:</span>
-                <input type="number" id="materialRoughness" min="0" max="1" step="0.1">
-            </div>
-            <div class="property-row">
-                <span>Transparency:</span>
-                <input type="number" id="materialOpacity" min="0" max="1" step="0.1">
-            </div>
-        </div>
-    </div>
-
-    <div id="scene-hierarchy" class="panel">
-        <button id="close-button" style="float: right; background: red; color: white; border: none; cursor: pointer; padding: 5px;">
-            X
-        </button>
-        <h3>Scene Sequence</h3>
-        <div id="hierarchy-content"></div>
-    </div>
-
-    
-
-    <div id="viewport-info" style=" display: flex;">
-        <div id="fps" style=" background-color: rgb(164, 30, 190); padding: 3px; margin: 0 2px;">FPS: 0</div>
-        <div id="objects" style=" background-color: rgba(0, 255, 21, 0.767); padding: 3px; margin: 0 2px;">Objects: 0</div>
-        <div id="polygons" style=" background-color: rgb(0, 118, 187); padding: 3px; margin: 0 2px;">Polygons: 0</div>
-    </div>
-    
+    <!-- THREE.JS ECOSYSTEM CDNs (R128 Modern Core) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/GLTFExporter.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/lil-gui@0.17"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.139.0/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.139.0/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.139.0/examples/js/controls/TransformControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.139.0/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.139.0/examples/js/loaders/RGBELoader.js"></script>
 
-
-
-    <script async src="https://unpkg.com/es-module-shims@1.8.0/dist/es-module-shims.js"></script>
-    
-    
-    <script src="script.js"></script>
-    <script src="socor.js"></script>
+    <!-- MAIN ENGINE SCRIPT -->
     <script>
-        function togglePanel(panelId) {
-            // Hide both panels first
-            document.getElementById('scene-hierarchy').classList.remove('active');
-            document.getElementById('material-editor').classList.remove('active');
-            document.getElementById('AddHdri').classList.remove('active');
-            
-            // Show the selected panel
-            document.getElementById(panelId).classList.add('active');
+        /**
+         * APEX 3D ENGINE ARCHITECTURE
+         * Object-oriented, event-driven engine lifecycle.
+         */
+        class StudioEngine {
+            constructor() {
+                this.canvas = document.getElementById('webgl-canvas');
+                this.container = document.getElementById('viewport-container');
+                
+                // Core Scene Setup
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x1a1b1e);
+
+                this.camera = new THREE.PerspectiveCamera(50, this.container.clientWidth / this.container.clientHeight, 0.1, 1000);
+                this.camera.position.set(6, 4, 8);
+
+                this.renderer = new THREE.WebGLRenderer({
+                    canvas: this.canvas,
+                    antialias: true,
+                    preserveDrawingBuffer: true,
+                    powerPreference: "high-performance"
+                });
+                this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+                this.renderer.toneMappingExposure = 1.0;
+
+                // Ground Grid
+                this.grid = new THREE.GridHelper(30, 30, 0x007acc, 0x2b2d33);
+                this.grid.position.y = -0.01;
+                this.scene.add(this.grid);
+
+                // Lighting
+                this.setupDefaultLights();
+
+                // Interactive Controls
+                this.orbit = new THREE.OrbitControls(this.camera, this.canvas);
+                this.orbit.enableDamping = true;
+                this.orbit.dampingFactor = 0.05;
+
+                this.gizmo = new THREE.TransformControls(this.camera, this.canvas);
+                this.gizmo.size = 0.75;
+                this.scene.add(this.gizmo);
+
+                this.gizmo.addEventListener('dragging-changed', (e) => {
+                    this.orbit.enabled = !e.value;
+                    if (!e.value) this.recordAction(); // Save undo state on transform finish
+                });
+
+                this.gizmo.addEventListener('change', () => {
+                    this.syncInspectorValues();
+                });
+
+                // Selection & Interaction
+                this.selectedObject = null;
+                this.raycaster = new THREE.Raycaster();
+                this.mouse = new THREE.Vector2();
+
+                // Undo / Redo Command Stacks
+                this.undoStack = [];
+                this.redoStack = [];
+
+                // Sculpt System Properties
+                this.sculptMode = false;
+                this.sculptType = 'sculpt';
+                this.brushSize = 0.5;
+                this.brushStrength = 0.2;
+                this.createSculptCursor();
+
+                // Animation Sequencer
+                this.timeline = {
+                    duration: 10,
+                    currentTime: 0,
+                    isPlaying: false,
+                    keyframes: new Map() // Object UUID -> array of { time, pos, rot, scale }
+                };
+
+                this.clock = new THREE.Clock();
+                this.fpsCounter = 0;
+                this.fpsTimer = 0;
+
+                // Saved Camera Shots
+                this.shots = [];
+
+                this.init();
+            }
+
+            init() {
+                this.bindUIEvents();
+                this.bindShortcuts();
+                this.addDefaultGeometry();
+                this.renderLoop();
+                window.addEventListener('resize', () => this.onResize());
+            }
+
+            setupDefaultLights() {
+                this.ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+                this.scene.add(this.ambientLight);
+
+                this.sunLight = new THREE.DirectionalLight(0xffffff, 1.5);
+                this.sunLight.position.set(10, 15, 10);
+                this.sunLight.castShadow = true;
+                this.sunLight.shadow.mapSize.width = 2048;
+                this.sunLight.shadow.mapSize.height = 2048;
+                this.sunLight.shadow.bias = -0.0001;
+                this.scene.add(this.sunLight);
+            }
+
+            addDefaultGeometry() {
+                const geo = new THREE.BoxGeometry(2, 2, 2);
+                const mat = new THREE.MeshStandardMaterial({
+                    color: 0x8899a6,
+                    metalness: 0.1,
+                    roughness: 0.4
+                });
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.name = "Default Cube";
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                mesh.position.y = 1;
+                this.scene.add(mesh);
+                this.selectObject(mesh);
+                this.updateOutliner();
+            }
+
+            createSculptCursor() {
+                const ring = new THREE.RingGeometry(0.9, 1, 32);
+                const mat = new THREE.MeshBasicMaterial({ color: 0x0098ff, side: THREE.DoubleSide });
+                this.sculptCursor = new THREE.Mesh(ring, mat);
+                this.sculptCursor.visible = false;
+                this.scene.add(this.sculptCursor);
+            }
+
+            // ------------------- OBJECT CREATION & SELECTION -------------------
+            addPrimitive(type) {
+                let geo;
+                switch (type) {
+                    case 'cube': geo = new THREE.BoxGeometry(2, 2, 2, 16, 16, 16); break;
+                    case 'sphere': geo = new THREE.SphereGeometry(1.2, 32, 32); break;
+                    case 'cylinder': geo = new THREE.CylinderGeometry(1, 1, 2, 32); break;
+                    case 'torus': geo = new THREE.TorusGeometry(1, 0.4, 24, 64); break;
+                }
+                const mat = new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.5, metalness: 0.2 });
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.name = `${type.charAt(0).toUpperCase() + type.slice(1)} ${this.scene.children.length}`;
+                mesh.position.set(0, 1, 0);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                this.scene.add(mesh);
+                this.selectObject(mesh);
+                this.updateOutliner();
+                this.recordAction();
+            }
+
+            selectObject(object) {
+                if (this.selectedObject === object) return;
+                this.selectedObject = object;
+
+                if (object && object !== this.grid && object !== this.sculptCursor && !object.isLight) {
+                    this.gizmo.attach(object);
+                    this.syncInspectorValues();
+                } else {
+                    this.gizmo.detach();
+                }
+                this.highlightOutlinerNode();
+            }
+
+            deleteSelected() {
+                if (!this.selectedObject) return;
+                this.gizmo.detach();
+                this.scene.remove(this.selectedObject);
+                this.selectedObject = null;
+                this.updateOutliner();
+                this.recordAction();
+            }
+
+            // ------------------- UI & EVENT BINDINGS -------------------
+            bindUIEvents() {
+                // Viewport Selection
+                this.canvas.addEventListener('pointerdown', (e) => {
+                    if (this.sculptMode && this.selectedObject) {
+                        this.applySculpt(e);
+                        return;
+                    }
+                    if (e.button !== 0) return; // Only primary clicks
+                    
+                    const rect = this.canvas.getBoundingClientRect();
+                    this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                    this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+                    this.raycaster.setFromCamera(this.mouse, this.camera);
+                    const intersects = this.raycaster.intersectObjects(this.scene.children, true);
+                    
+                    const hit = intersects.find(i => i.object !== this.grid && i.object !== this.sculptCursor && i.object.type === 'Mesh');
+                    if (hit) {
+                        this.selectObject(hit.object);
+                    } else if (!this.gizmo.dragging && !this.gizmo.axis) {
+                        this.selectObject(null);
+                    }
+                });
+
+                // Sculpt cursor movement
+                this.canvas.addEventListener('pointermove', (e) => {
+                    if (!this.sculptMode || !this.selectedObject) {
+                        this.sculptCursor.visible = false;
+                        return;
+                    }
+                    const rect = this.canvas.getBoundingClientRect();
+                    this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                    this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+                    this.raycaster.setFromCamera(this.mouse, this.camera);
+                    const hit = this.raycaster.intersectObject(this.selectedObject)[0];
+                    if (hit) {
+                        this.sculptCursor.visible = true;
+                        this.sculptCursor.position.copy(hit.point);
+                        this.sculptCursor.lookAt(hit.point.clone().add(hit.face.normal));
+                        this.sculptCursor.scale.setScalar(this.brushSize);
+                        if (e.buttons === 1) this.applySculpt(e);
+                    } else {
+                        this.sculptCursor.visible = false;
+                    }
+                });
+
+                // Transform Gizmo Switching
+                const setTool = (mode, el) => {
+                    document.querySelectorAll('#toolbar-left .tool-btn').forEach(b => b.classList.remove('active'));
+                    el.classList.add('active');
+                    this.sculptMode = false;
+                    if (mode === 'select') {
+                        this.gizmo.detach();
+                    } else {
+                        if (this.selectedObject) this.gizmo.attach(this.selectedObject);
+                        this.gizmo.setMode(mode);
+                    }
+                };
+
+                document.getElementById('tool-select').onclick = (e) => setTool('select', e.currentTarget);
+                document.getElementById('tool-translate').onclick = (e) => setTool('translate', e.currentTarget);
+                document.getElementById('tool-rotate').onclick = (e) => setTool('rotate', e.currentTarget);
+                document.getElementById('tool-scale').onclick = (e) => setTool('scale', e.currentTarget);
+                
+                document.getElementById('tool-sculpt').onclick = (e) => {
+                    document.querySelectorAll('#toolbar-left .tool-btn').forEach(b => b.classList.remove('active'));
+                    e.currentTarget.classList.add('active');
+                    this.sculptMode = true;
+                    this.gizmo.detach();
+                    this.switchTab('tab-sculpt');
+                };
+
+                // Add Primitives
+                document.getElementById('add-cube').onclick = () => this.addPrimitive('cube');
+                document.getElementById('add-sphere').onclick = () => this.addPrimitive('sphere');
+                document.getElementById('add-cylinder').onclick = () => this.addPrimitive('cylinder');
+                document.getElementById('add-torus').onclick = () => this.addPrimitive('torus');
+                document.getElementById('btn-delete-node').onclick = () => this.deleteSelected();
+
+                // Inspector Tabs Navigation
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.onclick = () => this.switchTab(btn.dataset.tab);
+                });
+
+                // Two-way Inspector Input Binding
+                const bindCoord = (id, prop, axis, scale = 1) => {
+                    const el = document.getElementById(id);
+                    el.addEventListener('input', () => {
+                        if (!this.selectedObject) return;
+                        this.selectedObject[prop][axis] = parseFloat(el.value || 0) * scale;
+                        this.recordAction();
+                    });
+                };
+                bindCoord('pos-x', 'position', 'x');
+                bindCoord('pos-y', 'position', 'y');
+                bindCoord('pos-z', 'position', 'z');
+                bindCoord('rot-x', 'rotation', 'x', Math.PI / 180);
+                bindCoord('rot-y', 'rotation', 'y', Math.PI / 180);
+                bindCoord('rot-z', 'rotation', 'z', Math.PI / 180);
+                bindCoord('scale-x', 'scale', 'x');
+                bindCoord('scale-y', 'scale', 'y');
+                bindCoord('scale-z', 'scale', 'z');
+
+                // Material Property Inputs
+                document.getElementById('mat-color').addEventListener('input', (e) => {
+                    if (this.selectedObject && this.selectedObject.material) {
+                        this.selectedObject.material.color.set(e.target.value);
+                    }
+                });
+                document.getElementById('mat-roughness').addEventListener('input', (e) => {
+                    if (this.selectedObject && this.selectedObject.material) {
+                        this.selectedObject.material.roughness = parseFloat(e.target.value);
+                    }
+                });
+                document.getElementById('mat-metalness').addEventListener('input', (e) => {
+                    if (this.selectedObject && this.selectedObject.material) {
+                        this.selectedObject.material.metalness = parseFloat(e.target.value);
+                    }
+                });
+                document.getElementById('mat-clearcoat').addEventListener('input', (e) => {
+                    if (this.selectedObject && this.selectedObject.material) {
+                        this.selectedObject.material.clearcoat = parseFloat(e.target.value);
+                    }
+                });
+                document.getElementById('mat-transmission').addEventListener('input', (e) => {
+                    if (this.selectedObject && this.selectedObject.material) {
+                        this.selectedObject.material.transmission = parseFloat(e.target.value);
+                        this.selectedObject.material.transparent = true;
+                    }
+                });
+                document.getElementById('mat-wireframe').addEventListener('change', (e) => {
+                    if (this.selectedObject && this.selectedObject.material) {
+                        this.selectedObject.material.wireframe = e.target.checked;
+                    }
+                });
+
+                // Asset Pipeline / File Pickers
+                document.getElementById('btn-import-model').onclick = () => document.getElementById('file-model').click();
+                document.getElementById('file-model').onchange = (e) => this.loadGLTF(e.target.files[0]);
+                document.getElementById('btn-upload-tex').onclick = () => document.getElementById('file-texture').click();
+                document.getElementById('file-texture').onchange = (e) => this.loadTexture(e.target.files[0]);
+                document.getElementById('btn-upload-hdri').onclick = () => document.getElementById('file-hdri').click();
+                document.getElementById('file-hdri').onchange = (e) => this.loadHDRI(e.target.files[0]);
+
+                // Export Actions
+                document.getElementById('btn-snapshot').onclick = () => this.takeSnapshot();
+                document.getElementById('btn-export-gltf').onclick = () => this.exportSceneGLTF();
+
+                // Undo / Redo Click Handlers
+                document.getElementById('btn-undo').onclick = () => this.undo();
+                document.getElementById('btn-redo').onclick = () => this.redo();
+
+                // Timeline Sequencer Events
+                document.getElementById('tl-play').onclick = () => this.togglePlayback();
+                document.getElementById('tl-stop').onclick = () => this.stopPlayback();
+                document.getElementById('tl-add-key').onclick = () => this.addKeyframe();
+                document.getElementById('tl-toggle-panel').onclick = () => {
+                    document.getElementById('bottom-panel').classList.toggle('collapsed');
+                };
+                document.getElementById('timeline-tracks').onclick = (e) => this.seekTimeline(e);
+
+                // Sculpt Parameter Inputs
+                document.getElementById('sculpt-mode').onchange = (e) => this.sculptType = e.target.value;
+                document.getElementById('sculpt-size').oninput = (e) => this.brushSize = parseFloat(e.target.value);
+                document.getElementById('sculpt-strength').oninput = (e) => this.brushStrength = parseFloat(e.target.value);
+
+                // Shots Director
+                document.getElementById('btn-create-shot').onclick = () => this.storeCurrentShot();
+            }
+
+            bindShortcuts() {
+                window.addEventListener('keydown', (e) => {
+                    if (e.target.tagName === 'INPUT') return;
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+                        e.preventDefault();
+                        this.undo();
+                    }
+                    if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'Z'))) {
+                        e.preventDefault();
+                        this.redo();
+                    }
+                    if (e.key === 'Delete') this.deleteSelected();
+                    if (e.key.toLowerCase() === 'w') document.getElementById('tool-translate').click();
+                    if (e.key.toLowerCase() === 'e') document.getElementById('tool-rotate').click();
+                    if (e.key.toLowerCase() === 'r') document.getElementById('tool-scale').click();
+                    if (e.key.toLowerCase() === 'q') document.getElementById('tool-select').click();
+                });
+            }
+
+            switchTab(tabId) {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+                document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+                document.getElementById(tabId).style.display = 'flex';
+            }
+
+            // ------------------- DATA SYNCHRONIZATION -------------------
+            syncInspectorValues() {
+                if (!this.selectedObject) return;
+                const pos = this.selectedObject.position;
+                const rot = this.selectedObject.rotation;
+                const scale = this.selectedObject.scale;
+
+                document.getElementById('pos-x').value = pos.x.toFixed(2);
+                document.getElementById('pos-y').value = pos.y.toFixed(2);
+                document.getElementById('pos-z').value = pos.z.toFixed(2);
+
+                document.getElementById('rot-x').value = (rot.x * 180 / Math.PI).toFixed(0);
+                document.getElementById('rot-y').value = (rot.y * 180 / Math.PI).toFixed(0);
+                document.getElementById('rot-z').value = (rot.z * 180 / Math.PI).toFixed(0);
+
+                document.getElementById('scale-x').value = scale.x.toFixed(2);
+                document.getElementById('scale-y').value = scale.y.toFixed(2);
+                document.getElementById('scale-z').value = scale.z.toFixed(2);
+
+                // Material sync
+                if (this.selectedObject.material) {
+                    const m = this.selectedObject.material;
+                    if (m.color) document.getElementById('mat-color').value = '#' + m.color.getHexString();
+                    if (m.roughness !== undefined) document.getElementById('mat-roughness').value = m.roughness;
+                    if (m.metalness !== undefined) document.getElementById('mat-metalness').value = m.metalness;
+                }
+            }
+
+            updateOutliner() {
+                const list = document.getElementById('outliner-list');
+                list.innerHTML = '';
+                this.scene.children.forEach(obj => {
+                    if (obj === this.grid || obj === this.gizmo || obj === this.sculptCursor) return;
+
+                    const li = document.createElement('li');
+                    li.className = 'tree-node' + (this.selectedObject === obj ? ' selected' : '');
+                    
+                    let icon = 'fa-cube';
+                    if (obj.isLight) icon = 'fa-lightbulb';
+                    if (obj.type === 'Camera') icon = 'fa-video';
+
+                    li.innerHTML = `
+                        <div class="tree-node-title">
+                            <i class="fa-solid ${icon}"></i>
+                            <span>${obj.name || obj.type}</span>
+                        </div>
+                    `;
+                    li.onclick = () => this.selectObject(obj);
+                    list.appendChild(li);
+                });
+            }
+
+            highlightOutlinerNode() {
+                document.querySelectorAll('.tree-node').forEach(node => {
+                    node.classList.remove('selected');
+                });
+                this.updateOutliner();
+            }
+
+            // ------------------- MATERIAL PRESETS -------------------
+            applyPreset(presetName) {
+                if (!this.selectedObject || !this.selectedObject.material) return;
+                
+                const presets = {
+                    gold: { color: 0xffd700, metalness: 0.9, roughness: 0.15 },
+                    chrome: { color: 0xffffff, metalness: 1.0, roughness: 0.05 },
+                    glass: { color: 0xffffff, transmission: 0.95, roughness: 0.05, transparent: true },
+                    rubber: { color: 0x222222, metalness: 0.0, roughness: 0.8 },
+                    plastic: { color: 0xe02424, metalness: 0.1, roughness: 0.2 },
+                    wood: { color: 0x8b5a2b, metalness: 0.0, roughness: 0.6 }
+                };
+
+                const cfg = presets[presetName];
+                if (!cfg) return;
+
+                const mat = new THREE.MeshPhysicalMaterial(cfg);
+                this.selectedObject.material = mat;
+                this.syncInspectorValues();
+                this.recordAction();
+            }
+
+            // ------------------- MESH SCULPTING (VERTEX LEVEL) -------------------
+            applySculpt(event) {
+                const mesh = this.selectedObject;
+                if (!mesh || !mesh.geometry) return;
+
+                const hit = this.raycaster.intersectObject(mesh)[0];
+                if (!hit) return;
+
+                const geo = mesh.geometry;
+                const posAttr = geo.attributes.position;
+                if (!posAttr) return;
+
+                const center = hit.point;
+                const normal = hit.face.normal.clone().applyQuaternion(mesh.quaternion);
+                const localCenter = mesh.worldToLocal(center.clone());
+
+                for (let i = 0; i < posAttr.count; i++) {
+                    const vx = posAttr.getX(i);
+                    const vy = posAttr.getY(i);
+                    const vz = posAttr.getZ(i);
+                    const v = new THREE.Vector3(vx, vy, vz);
+
+                    const dist = v.distanceTo(localCenter);
+                    if (dist < this.brushSize) {
+                        const falloff = Math.cos((dist / this.brushSize) * (Math.PI / 2));
+                        const intensity = this.brushStrength * falloff * 0.1;
+
+                        if (this.sculptType === 'sculpt') {
+                            v.addScaledVector(normal, intensity);
+                        } else if (this.sculptType === 'inflate') {
+                            v.addScaledVector(v.clone().normalize(), intensity);
+                        } else if (this.sculptType === 'smooth') {
+                            v.lerp(localCenter, intensity * 0.2);
+                        }
+
+                        posAttr.setXYZ(i, v.x, v.y, v.z);
+                    }
+                }
+
+                posAttr.needsUpdate = true;
+                geo.computeVertexNormals();
+            }
+
+            // ------------------- ASSET LOADERS & EXPORTS -------------------
+            loadGLTF(file) {
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const loader = new THREE.GLTFLoader();
+                    loader.parse(e.target.result, '', (gltf) => {
+                        const model = gltf.scene;
+                        model.name = file.name.replace(/\.[^/.]+$/, "");
+                        model.traverse(child => {
+                            if (child.isMesh) {
+                                child.castShadow = true;
+                                child.receiveShadow = true;
+                            }
+                        });
+                        this.scene.add(model);
+                        this.selectObject(model);
+                        this.updateOutliner();
+                    });
+                };
+                reader.readAsArrayBuffer(file);
+            }
+
+            loadTexture(file) {
+                if (!file || !this.selectedObject) return;
+                const url = URL.createObjectURL(file);
+                new THREE.TextureLoader().load(url, (tex) => {
+                    this.selectedObject.material.map = tex;
+                    this.selectedObject.material.needsUpdate = true;
+                });
+            }
+
+            loadHDRI(file) {
+                if (!file) return;
+                const url = URL.createObjectURL(file);
+                new THREE.RGBELoader().load(url, (texture) => {
+                    texture.mapping = THREE.EquirectangularReflectionMapping;
+                    this.scene.environment = texture;
+                    this.scene.background = texture;
+                });
+            }
+
+            takeSnapshot() {
+                this.renderer.render(this.scene, this.camera);
+                const dataURL = this.canvas.toDataURL('image/png');
+                const link = document.createElement('a');
+                link.download = 'Studio_Snapshot.png';
+                link.href = dataURL;
+                link.click();
+            }
+
+            exportSceneGLTF() {
+                const exporter = new THREE.GLTFExporter();
+                exporter.parse(this.scene, (gltf) => {
+                    const output = JSON.stringify(gltf, null, 2);
+                    const blob = new Blob([output], { type: 'application/json' });
+                    const link = document.createElement('a');
+                    link.download = 'Apex_Scene.gltf';
+                    link.href = URL.createObjectURL(blob);
+                    link.click();
+                }, { binary: false });
+            }
+
+            // ------------------- SOLID UNDO / REDO COMMANDS -------------------
+            recordAction() {
+                if (!this.selectedObject) return;
+                const snapshot = {
+                    uuid: this.selectedObject.uuid,
+                    position: this.selectedObject.position.clone(),
+                    rotation: this.selectedObject.rotation.clone(),
+                    scale: this.selectedObject.scale.clone()
+                };
+                this.undoStack.push(snapshot);
+                if (this.undoStack.length > 25) this.undoStack.shift();
+                this.redoStack = [];
+            }
+
+            undo() {
+                if (this.undoStack.length === 0) return;
+                const last = this.undoStack.pop();
+                const obj = this.scene.getObjectByProperty('uuid', last.uuid);
+                if (obj) {
+                    this.redoStack.push({
+                        uuid: obj.uuid,
+                        position: obj.position.clone(),
+                        rotation: obj.rotation.clone(),
+                        scale: obj.scale.clone()
+                    });
+                    obj.position.copy(last.position);
+                    obj.rotation.copy(last.rotation);
+                    obj.scale.copy(last.scale);
+                    this.syncInspectorValues();
+                }
+            }
+
+            redo() {
+                if (this.redoStack.length === 0) return;
+                const state = this.redoStack.pop();
+                const obj = this.scene.getObjectByProperty('uuid', state.uuid);
+                if (obj) {
+                    this.undoStack.push({
+                        uuid: obj.uuid,
+                        position: obj.position.clone(),
+                        rotation: obj.rotation.clone(),
+                        scale: obj.scale.clone()
+                    });
+                    obj.position.copy(state.position);
+                    obj.rotation.copy(state.rotation);
+                    obj.scale.copy(state.scale);
+                    this.syncInspectorValues();
+                }
+            }
+
+            // ------------------- TIMELINE & ANIMATION SCRUBBER -------------------
+            addKeyframe() {
+                if (!this.selectedObject) return;
+                const uuid = this.selectedObject.uuid;
+                if (!this.timeline.keyframes.has(uuid)) {
+                    this.timeline.keyframes.set(uuid, []);
+                }
+                const track = this.timeline.keyframes.get(uuid);
+                
+                // Remove collision on same timestamp
+                const existingIdx = track.findIndex(k => Math.abs(k.time - this.timeline.currentTime) < 0.1);
+                if (existingIdx !== -1) track.splice(existingIdx, 1);
+
+                track.push({
+                    time: this.timeline.currentTime,
+                    position: this.selectedObject.position.clone(),
+                    quaternion: this.selectedObject.quaternion.clone(),
+                    scale: this.selectedObject.scale.clone()
+                });
+                track.sort((a, b) => a.time - b.time);
+                this.drawKeyframeNode(this.timeline.currentTime);
+            }
+
+            drawKeyframeNode(time) {
+                const marker = document.createElement('div');
+                marker.className = 'keyframe-node';
+                marker.style.left = `${(time / this.timeline.duration) * 100}%`;
+                document.getElementById('timeline-tracks').appendChild(marker);
+            }
+
+            seekTimeline(e) {
+                const track = document.getElementById('timeline-tracks');
+                const rect = track.getBoundingClientRect();
+                const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                this.timeline.currentTime = ratio * this.timeline.duration;
+                this.updatePlayhead();
+                this.applyAnimationKeyframes();
+            }
+
+            updatePlayhead() {
+                const percent = (this.timeline.currentTime / this.timeline.duration) * 100;
+                document.getElementById('playhead').style.left = `${percent}%`;
+                document.getElementById('tl-timecode').textContent = `${this.timeline.currentTime.toFixed(2)}s`;
+            }
+
+            togglePlayback() {
+                this.timeline.isPlaying = !this.timeline.isPlaying;
+                const btn = document.getElementById('tl-play');
+                btn.innerHTML = this.timeline.isPlaying ? '<i class="fa-solid fa-pause"></i>' : '<i class="fa-solid fa-play"></i>';
+            }
+
+            stopPlayback() {
+                this.timeline.isPlaying = false;
+                this.timeline.currentTime = 0;
+                document.getElementById('tl-play').innerHTML = '<i class="fa-solid fa-play"></i>';
+                this.updatePlayhead();
+                this.applyAnimationKeyframes();
+            }
+
+            applyAnimationKeyframes() {
+                this.timeline.keyframes.forEach((keys, uuid) => {
+                    const obj = this.scene.getObjectByProperty('uuid', uuid);
+                    if (!obj || keys.length === 0) return;
+
+                    const curTime = this.timeline.currentTime;
+
+                    if (curTime <= keys[0].time) {
+                        obj.position.copy(keys[0].position);
+                        obj.quaternion.copy(keys[0].quaternion);
+                        obj.scale.copy(keys[0].scale);
+                        return;
+                    }
+
+                    if (curTime >= keys[keys.length - 1].time) {
+                        const last = keys[keys.length - 1];
+                        obj.position.copy(last.position);
+                        obj.quaternion.copy(last.quaternion);
+                        obj.scale.copy(last.scale);
+                        return;
+                    }
+
+                    for (let i = 0; i < keys.length - 1; i++) {
+                        if (curTime >= keys[i].time && curTime <= keys[i + 1].time) {
+                            const factor = (curTime - keys[i].time) / (keys[i + 1].time - keys[i].time);
+                            obj.position.lerpVectors(keys[i].position, keys[i + 1].position, factor);
+                            obj.quaternion.slerpQuaternions(keys[i].quaternion, keys[i + 1].quaternion, factor);
+                            obj.scale.lerpVectors(keys[i].scale, keys[i + 1].scale, factor);
+                            break;
+                        }
+                    }
+                });
+            }
+
+            // ------------------- SHOT DIRECTOR -------------------
+            storeCurrentShot() {
+                const shot = {
+                    id: `Shot ${this.shots.length + 1}`,
+                    camPos: this.camera.position.clone(),
+                    target: this.orbit.target.clone()
+                };
+                this.shots.push(shot);
+
+                const container = document.getElementById('shots-list');
+                if (this.shots.length === 1) container.innerHTML = '';
+
+                const item = document.createElement('div');
+                item.style = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;';
+                item.innerHTML = `
+                    <span>${shot.id}</span>
+                    <button class="btn" style="padding: 2px 6px;">Activate</button>
+                `;
+                item.querySelector('button').onclick = () => {
+                    this.camera.position.copy(shot.camPos);
+                    this.orbit.target.copy(shot.target);
+                };
+                container.appendChild(item);
+            }
+
+            // ------------------- RUNTIME LOOP -------------------
+            renderLoop() {
+                requestAnimationFrame(() => this.renderLoop());
+
+                const delta = this.clock.getDelta();
+
+                // Timeline Tick
+                if (this.timeline.isPlaying) {
+                    this.timeline.currentTime += delta;
+                    if (this.timeline.currentTime > this.timeline.duration) {
+                        this.timeline.currentTime = 0;
+                    }
+                    this.updatePlayhead();
+                    this.applyAnimationKeyframes();
+                }
+
+                // Controls Damping
+                this.orbit.update();
+
+                // FPS & Metric Trackers
+                this.fpsCounter++;
+                this.fpsTimer += delta;
+                if (this.fpsTimer >= 1.0) {
+                    document.getElementById('stat-fps').textContent = `${this.fpsCounter} FPS`;
+                    document.getElementById('stat-poly').textContent = this.renderer.info.render.triangles.toLocaleString();
+                    document.getElementById('stat-objs').textContent = this.scene.children.length;
+                    this.fpsCounter = 0;
+                    this.fpsTimer = 0;
+                }
+
+                this.renderer.render(this.scene, this.camera);
+            }
+
+            onResize() {
+                const w = this.container.clientWidth;
+                const h = this.container.clientHeight;
+                this.camera.aspect = w / h;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(w, h);
+            }
         }
 
-        // Close Button Functionality
-        document.getElementById("close-button").addEventListener("click", function() {
-            document.getElementById("scene-hierarchy").classList.remove("active");
-            document.getElementById("material-editor").classList.remove("active");
-            document.getElementById("AddHdri").classList.remove("active");
+        // Initialize Studio Engine on Boot
+        window.addEventListener('DOMContentLoaded', () => {
+            window.studio = new StudioEngine();
         });
-        
     </script>
 </body>
 </html>
-
-
